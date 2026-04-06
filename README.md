@@ -34,8 +34,31 @@ A computer vision–powered chess move tracker that detects moves from a physica
 ---
 
 ## Getting Started
-1. Clone the repo:
+1. Clone the repo: 
    ```bash
    git clone https://github.com/yourusername/chess-tracker.git
+
    cd chess-tracker
-2.
+  # Step 2: Install libraries
+pip install -r requirements.txt
+
+# Step 3: Install GTK+ for Windows Runtime Environment
+
+# Download and install from:
+# https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+
+# Step 4: Download Stockfish
+# Get the latest Stockfish engine from:
+# https://stockfishchess.org
+# Place the downloaded executable (stockfish-windows-x86-64-avx2.exe) in the project folder
+
+# Step 5: Run Python Scripts
+
+# First calibrate the board
+python calibrate_manual_oriented.py --rotate 270
+
+# Then start the tracker
+python cv_chess_play.py
+
+
+
