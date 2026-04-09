@@ -103,7 +103,7 @@ Enter 1 or 2:
 
 ## License
 
-This project does not currently have a license.
+Free use
 
 ---
 
