@@ -34,11 +34,12 @@ A computer vision–powered chess move tracker that detects moves from a physica
 
 | Key | Action |
 |-----|--------|
-| `r` | Log a move (press twice) |
+| `r` (before move) | Take a snapshot of the board before touching a piece |
+| `r` (after move) | Take a snapshot after placing the piece — detects the move |
 | `u` | Undo last move |
 | `U` | Undo last two moves |
-| `d` | Toggle debug mode |
-| `q` | Quit |
+| `d` | Toggle debug mode on/off |
+| `q` | Quit the app |
 
 ---
 
@@ -89,6 +90,7 @@ Select mode:
 2 - Record a game (2 players)
 Enter 1 or 2:
 ```
+
 ---
 
 ## Tech Stack
