@@ -5,6 +5,7 @@ import numpy as np
 import chess
 import chess.engine
 import chess.svg
+import chess.pgn
 from PIL import Image
 import io
 import random
@@ -23,6 +24,17 @@ BOARD_ORIENTATION = "TOP"  # "TOP", "BOTTOM", "SIDE_L", "SIDE_R"
 GROQ_API_KEY = "your-api-key-here"
 
 DEBUG_MODE = False  # Hit 'd' to flip debug ON/OFF
+
+# === MODE SELECT ===
+print("Select mode:")
+print("1 - Play vs Stockfish")
+print("2 - Record a game (2 players)")
+mode = input("Enter 1 or 2: ").strip()
+while mode not in ["1", "2"]:
+    print("[WARN] Invalid choice, enter 1 or 2.")
+    mode = input("Enter 1 or 2: ").strip()
+mode = int(mode)
+print(f"[INFO] Mode {mode} selected.")
 
 # === ENGINE ===
 if not os.path.exists(ENGINE_PATH):
@@ -104,6 +116,39 @@ def show_board(board, last_move=None):
     cv2.imshow("Board State", img_cv)
     cv2.waitKey(1)
 
+def capture_stable_frame(cap, samples=5):
+    frames = []
+    for _ in range(samples):
+        ret, f = cap.read()
+        if ret:
+            frames.append(f.astype(np.float32))
+    if not frames:
+        return None
+    avg = np.mean(frames, axis=0).astype(np.uint8)
+    return avg
+
+def get_changed_squares(frame_before, frame_after):
+    gray_before = cv2.cvtColor(frame_before, cv2.COLOR_BGR2GRAY)
+    gray_after = cv2.cvtColor(frame_after, cv2.COLOR_BGR2GRAY)
+    blur_before = cv2.GaussianBlur(gray_before, (5, 5), 0)
+    blur_after = cv2.GaussianBlur(gray_after, (5, 5), 0)
+    diff = cv2.absdiff(blur_before, blur_after)
+    _, thresh = cv2.threshold(diff, MOVE_THRESHOLD, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    changed_squares = set()
+    for cnt in contours:
+        if cv2.contourArea(cnt) < MIN_CONTOUR_AREA:
+            continue
+        M = cv2.moments(cnt)
+        if M["m00"] == 0:
+            continue
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        sq = find_square(cx, cy)
+        if sq:
+            changed_squares.add(sq)
+    return changed_squares
+
 def analyze_game(move_history):
     print("\n[INFO] Analyzing your game, please wait...")
 
@@ -155,6 +200,24 @@ def analyze_game(move_history):
     print(chat_completion.choices[0].message.content)
     print("=========================\n")
 
+def save_pgn(move_history, mode):
+    game = chess.pgn.Game()
+    node = game
+    for move in move_history:
+        node = node.add_variation(move)
+    game.headers["Event"] = "Casual Game"
+    game.headers["Date"] = time.strftime("%Y.%m.%d")
+    if mode == 1:
+        game.headers["White"] = "Player"
+        game.headers["Black"] = "Stockfish"
+    else:
+        game.headers["White"] = "Player 1"
+        game.headers["Black"] = "Player 2"
+    filename = f"game_{time.strftime('%Y%m%d_%H%M%S')}.pgn"
+    with open(filename, "w") as f:
+        print(game, file=f)
+    print(f"[INFO] Game saved to {filename}")
+
 # === CAMERA ===
 cap = cv2.VideoCapture(CAM_INDEX, cv2.CAP_DSHOW)
 if not cap.isOpened():
@@ -190,28 +253,12 @@ try:
         # === Player move time (smash 'r' twice) ===
         if key == ord('r'):
             if ref_frame is None:
-                ref_frame = frame_raw.copy()
+                ref_frame = capture_stable_frame(cap)
                 print("[DEBUG] Saved the first frame. Now make your move, then press 'r' again.")
             else:
                 print("[DEBUG] Got the second frame, crunching the move...")
-
-                diff = cv2.absdiff(ref_frame, frame_raw)
-                gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-                _, thresh = cv2.threshold(gray, MOVE_THRESHOLD, 255, cv2.THRESH_BINARY)
-                contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-                changed_squares = set()
-                for cnt in contours:
-                    if cv2.contourArea(cnt) < MIN_CONTOUR_AREA:
-                        continue
-                    M = cv2.moments(cnt)
-                    if M["m00"] == 0:
-                        continue
-                    cx = int(M["m10"] / M["m00"])
-                    cy = int(M["m01"] / M["m00"])
-                    sq = find_square(cx, cy)
-                    if sq:
-                        changed_squares.add(sq)
+                frame_after = capture_stable_frame(cap)
+                changed_squares = get_changed_squares(ref_frame, frame_after)
 
                 if DEBUG_MODE:
                     print(f"[DEBUG] Changed squares detected: {changed_squares}")
@@ -236,7 +283,8 @@ try:
                                         last_move = mv
                                         print(f"[YOU] Nice, you played: {mv.uci()}")
                                         show_board(board, last_move)
-                                        comp_turn = True
+                                        if mode == 1:
+                                            comp_turn = True
                                         move_found = True
                                         break
                                 except Exception:
@@ -274,8 +322,8 @@ try:
             else:
                 print("[INFO] Not enough moves to undo twice.")
 
-        # === Computer's turn ===
-        if comp_turn and not board.is_game_over():
+        # === Computer's turn (mode 1 only) ===
+        if mode == 1 and comp_turn and not board.is_game_over():
             result = engine.play(board, chess.engine.Limit(time=random.uniform(0.4, 0.9)))
             mv = result.move
             board.push(mv)
@@ -291,6 +339,7 @@ try:
 
     print("[INFO] That's a wrap — game finished.")
     analyze_game(move_history)
+    save_pgn(move_history, mode)
 
 finally:
     cap.release()
