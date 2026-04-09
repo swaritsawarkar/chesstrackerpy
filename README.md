@@ -89,15 +89,6 @@ Select mode:
 2 - Record a game (2 players)
 Enter 1 or 2:
 ```
-
----
-
-## Demo
-
-[![Demo Screenshot](docs/demo-image.png)](https://your-video-link.com)
-
-> Replace `docs/demo-image.png` with your screenshot path and `https://your-video-link.com` with your actual video link.
-
 ---
 
 ## Tech Stack
