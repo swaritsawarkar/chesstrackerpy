@@ -47,8 +47,8 @@ A computer vision–powered chess move tracker that detects moves from a physica
 
 ### Step 1: Clone the repo
 ```bash
-git clone https://github.com/yourusername/chess-tracker.git
-cd chess-tracker
+git clone https://github.com/swaritsawarkar/chesstrackerpy.git
+cd chesstrackerpy
 ```
 
 ### Step 2: Install libraries
@@ -65,10 +65,12 @@ Get the latest Stockfish engine from: https://stockfishchess.org
 Place the downloaded executable (`stockfish-windows-x86-64-avx2.exe`) in the project folder.
 
 ### Step 5: Set up your Groq API key
-Get a free API key from https://groq.com and paste it into the `GROQ_API_KEY` field in the config section of `cv_chess_play.py`:
+The optional post-game explanation uses a Groq API key. Get one from https://groq.com and set it in your shell before starting the tracker:
 ```python
-GROQ_API_KEY = "your-api-key-here"
+set GROQ_API_KEY=your-api-key-here
 ```
+
+If no key is configured, the tracker still saves the PGN and skips only the optional explanation.
 
 ### Step 6: Create the savegames folder
 Create an empty folder called `savegames` in the project directory. The app will use this to store game saves.
