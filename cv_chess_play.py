@@ -21,7 +21,7 @@ MOVE_THRESHOLD = 25
 MIN_CONTOUR_AREA = 250
 CAM_INDEX = 0
 BOARD_ORIENTATION = "TOP"  # "TOP", "BOTTOM", "SIDE_L", "SIDE_R"
-GROQ_API_KEY = "your-api-key-here"
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 DEBUG_MODE = False  # Hit 'd' to flip debug ON/OFF
 
@@ -150,6 +150,10 @@ def get_changed_squares(frame_before, frame_after):
     return changed_squares
 
 def analyze_game(move_history):
+    if not GROQ_API_KEY:
+        print("[INFO] GROQ_API_KEY is not set; skipping the optional AI explanation.")
+        return
+
     print("\n[INFO] Analyzing your game, please wait...")
 
     client = Groq(api_key=GROQ_API_KEY)
