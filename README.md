@@ -60,9 +60,11 @@ pip install -r requirements.txt
 Download and install from:
 https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
 
-### Step 4: Download Stockfish
+### Step 4: Download Stockfish (for AI play or optional Groq analysis)
 Get the latest Stockfish engine from: https://stockfishchess.org
 Place the downloaded executable (`stockfish-windows-x86-64-avx2.exe`) in the project folder.
+
+Two-player recording works without Stockfish when `GROQ_API_KEY` is unset. The PGN is saved before optional post-game analysis.
 
 ### Step 5: Set up your Groq API key
 The optional post-game explanation uses a Groq API key. Get one from https://groq.com and set it in your shell before starting the tracker:

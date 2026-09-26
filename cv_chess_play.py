@@ -37,17 +37,26 @@ mode = int(mode)
 print(f"[INFO] Mode {mode} selected.")
 
 # === ENGINE ===
-if not os.path.exists(ENGINE_PATH):
-    print(f"[OOPS] Can't find the chess engine at {ENGINE_PATH}")
-    sys.exit(1)
+def start_engine(mode, groq_api_key, engine_path):
+    if mode != 1 and not groq_api_key:
+        return None
+    if not os.path.exists(engine_path):
+        raise FileNotFoundError(f"Can't find the chess engine at {engine_path}")
+    return chess.engine.SimpleEngine.popen_uci(engine_path)
 
-engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
-print(f"[INFO] Stockfish fired up from {ENGINE_PATH}")
+try:
+    engine = start_engine(mode, GROQ_API_KEY, ENGINE_PATH)
+except FileNotFoundError as error:
+    print(f"[OOPS] {error}")
+    sys.exit(1)
+if engine is not None:
+    print(f"[INFO] Stockfish fired up from {ENGINE_PATH}")
 
 # === LOAD JSON ===
 if not os.path.exists(CALIB_JSON):
     print(f"[OOPS] Calibration file missing: {CALIB_JSON}")
-    engine.quit()
+    if engine is not None:
+        engine.quit()
     sys.exit(1)
 
 with open(CALIB_JSON, "r") as f:
@@ -222,11 +231,16 @@ def save_pgn(move_history, mode):
         print(game, file=f)
     print(f"[INFO] Game saved to {filename}")
 
+def finish_game(move_history, mode):
+    save_pgn(move_history, mode)
+    analyze_game(move_history)
+
 # === CAMERA ===
 cap = cv2.VideoCapture(CAM_INDEX, cv2.CAP_DSHOW)
 if not cap.isOpened():
     print("[OOPS] Camera didn't open.")
-    engine.quit()
+    if engine is not None:
+        engine.quit()
     sys.exit(1)
 
 board = chess.Board()
@@ -342,10 +356,10 @@ try:
             break
 
     print("[INFO] That's a wrap — game finished.")
-    analyze_game(move_history)
-    save_pgn(move_history, mode)
+    finish_game(move_history, mode)
 
 finally:
     cap.release()
     cv2.destroyAllWindows()
-    engine.quit()
+    if engine is not None:
+        engine.quit()
